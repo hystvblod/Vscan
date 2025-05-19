@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VScanPro</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" href="assets/logo.svg" />
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <img src="assets/logo.svg" alt="VScanPro Logo" class="logo" />
+            <span class="title">VScanPro</span>
+        </div>
+        <div class="header-right">
+            <select id="language-switcher" title="Langue">
+                <option value="fr">FR</option>
+                <option value="en">EN</option>
+                <option value="de">DE</option>
+                <option value="it">IT</option>
+                <option value="es">ES</option>
+                <option value="pt">PT</option>
+                <option value="ptbr">PT-BR</option>
+            </select>
+            <button id="theme-toggle" title="Mode Sombre/Clair">🌓</button>
+            <button id="premium-btn" class="premium-btn" title="Activer Premium">★</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <section id="main-actions">
+            <button id="scan-btn" class="main-btn">
+                <img src="assets/icons/scan.svg" alt="" /> <span data-t="scan_document">Scanner un document</span>
+            </button>
+            <button id="import-btn" class="main-btn">
+                <img src="assets/icons/import.svg" alt="" /> <span data-t="import_gallery">Importer depuis la galerie</span>
+            </button>
+            <button id="history-btn" class="main-btn">
+                <img src="assets/icons/history.svg" alt="" /> <span data-t="history">Historique</span>
+            </button>
+        </section>
+        
+        <!-- Zone de travail : scan & édition -->
+        <section id="work-area" class="hidden">
+            <div class="canvas-container">
+                <canvas id="scan-canvas"></canvas>
+                <div id="mask-overlay"></div>
+            </div>
+            <div class="actions-toolbar">
+                <button id="add-signature" data-t="add_signature">Ajouter une signature</button>
+                <button id="add-watermark" class="premium" data-t="add_watermark">Ajouter un filigrane</button>
+                <button id="mask-tool" class="premium" data-t="mask_tool">Masquer / flouter</button>
+                <button id="options-btn" data-t="options">Options du document</button>
+                <button id="export-pdf" data-t="export_pdf">Exporter en PDF</button>
+                <button id="close-work-area" title="Fermer">✖</button>
+            </div>
+        </section>
+
+        <!-- Historique -->
+        <section id="history-area" class="hidden">
+            <h2 data-t="history">Historique</h2>
+            <div id="history-list"></div>
+            <button id="close-history" title="Fermer">✖</button>
+        </section>
+    </main>
+
+    <!-- Options du document (modal) -->
+    <div id="options-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 data-t="document_options">Options du document</h3>
+            <div class="options-block">
+                <label data-t="choose_signature">Signature avancée :</label>
+                <button id="open-signature-advanced" class="premium" data-t="edit_signature">Modifier la signature</button>
+            </div>
+            <div class="options-block">
+                <label data-t="watermark">Filigrane :</label>
+                <input type="text" id="watermark-text" placeholder="Confidentiel..." maxlength="32" />
+                <input type="color" id="watermark-color" value="#888888" />
+                <input type="range" id="watermark-opacity" min="10" max="90" value="25" />
+                <select id="watermark-position">
+                    <option value="center" data-t="center">Centré</option>
+                    <option value="diagonal" data-t="diagonal">Diagonale</option>
+                    <option value="bottom" data-t="bottom">Bas</option>
+                </select>
+                <span class="premium" data-t="premium_only">(Premium)</span>
+            </div>
+            <div class="options-block">
+                <label data-t="pdf_password">Protéger le PDF (mot de passe) :</label>
+                <input type="password" id="pdf-password" maxlength="32" />
+                <span class="premium" data-t="premium_only">(Premium)</span>
+            </div>
+            <div class="options-block">
+                <label data-t="document_type">Type de document détecté :</label>
+                <span id="doc-type-detected">-</span>
+            </div>
+            <div class="options-block">
+                <label data-t="cachet">Ajouter cachet automatique :</label>
+                <input type="checkbox" id="add-seal" class="premium" />
+                <span class="premium" data-t="premium_only">(Premium)</span>
+            </div>
+            <button id="close-options" data-t="close">Fermer</button>
+        </div>
+    </div>
+
+    <!-- Pub/Cross-promo -->
+    <footer id="promo-banner">
+        <img src="assets/banner_sample.png" alt="Promo" />
+        <span id="promo-text">Découvrez aussi VFind – défis photo quotidiens !</span>
+        <a href="https://ton-lien.app" target="_blank" class="open-btn" id="promo-link" data-t="open">Ouvrir</a>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="langs.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
