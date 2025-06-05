@@ -96,6 +96,11 @@ main {
   min-height: 450px;
 }
 
+/* When the promo banner is shown, ensure enough space below */
+body:not(.premium) main {
+  margin-bottom: 5rem;
+}
+
 #main-actions {
   display: flex;
   flex-direction: column;
@@ -471,6 +476,9 @@ body.dark #promo-banner {
   main {
     max-width: 98vw;
     margin: 1.2rem auto 4.5rem auto;
+  }
+  body:not(.premium) main {
+    margin-bottom: 5rem;
   }
   .app-header {
     padding: 0.9rem 0.5rem;
