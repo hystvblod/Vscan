@@ -128,10 +128,9 @@ body.dark .main-btn {
   color: var(--color-txt-light);
 }
 
-.main-btn img {
-  width: 28px;
-  height: 28px;
-  vertical-align: middle;
+.main-btn .btn-icon {
+  font-size: 1.6rem;
+  line-height: 1;
 }
 
 .main-btn:active {
