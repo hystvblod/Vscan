@@ -196,6 +196,7 @@ body.dark #scan-canvas {
   left: 0; top: 0; right: 0; bottom: 0;
   border-radius: 0.8rem;
   pointer-events: none;
+  z-index: 3;
 }
 
 .mask-rect {
@@ -203,6 +204,18 @@ body.dark #scan-canvas {
   background: rgba(0,0,0,0.45);
   backdrop-filter: blur(3px);
   border-radius: 0.4rem;
+}
+
+.signature-overlay {
+  position: absolute;
+  user-select: none;
+  touch-action: none;
+  cursor: grab;
+  z-index: 2;
+}
+
+.signature-overlay.dragging {
+  cursor: grabbing;
 }
 
 .actions-toolbar {

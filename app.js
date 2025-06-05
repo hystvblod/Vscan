@@ -8,6 +8,7 @@ let currentLang = localStorage.getItem('vscan_lang') || 'fr';
 let isPremium = localStorage.getItem('vscan_premium') === '1';
 let darkMode = localStorage.getItem('vscan_dark') === '1';
 let currentImage = null, currentMask = [], currentSignature = null, currentWatermark = null, currentPassword = '', currentCachet = false;
+let signatureInfo = null, signatureOverlay = null;
 let docTypeDetected = '';
 let history = [];
 
@@ -175,6 +176,11 @@ function closeWorkArea() {
   $('#main-actions').classList.remove('hidden');
   currentImage = null;
   clearCanvas();
+  if (signatureOverlay) {
+    signatureOverlay.remove();
+    signatureOverlay = null;
+    signatureInfo = null;
+  }
 }
 
 function drawScanCanvas(img) {
@@ -191,6 +197,7 @@ function drawScanCanvas(img) {
   ctx.drawImage(img, 0, 0, w, h);
   // Si masque actif, afficher (ex. floutage)
   if (currentMask && currentMask.length) drawMask(ctx, w, h);
+  updateSignatureOverlay();
 }
 
 function clearCanvas() {
@@ -300,7 +307,7 @@ function addSignature(advanced = false) {
     document.body.removeChild(modal);
     // Redessine sur le scan-canvas (preview)
     if (currentImage) drawScanCanvas(currentImage);
-    overlaySignature();
+    createSignatureOverlay();
   });
   // Fermer si clic hors du modal
   modal.addEventListener('click', e => {
@@ -308,20 +315,110 @@ function addSignature(advanced = false) {
   });
 }
 
-function overlaySignature() {
+function createSignatureOverlay() {
   if (!currentSignature) return;
-  const canvas = $('#scan-canvas');
-  const ctx = canvas.getContext('2d');
-  const sigImg = new Image();
-  sigImg.onload = () => {
-    // Signature en bas à droite
-    const scale = canvas.width / 340;
-    const w = 150 * scale, h = 48 * scale;
-    ctx.globalAlpha = 0.93;
-    ctx.drawImage(sigImg, canvas.width - w - 20, canvas.height - h - 12, w, h);
-    ctx.globalAlpha = 1;
+  const container = document.querySelector('.canvas-container');
+  const canvas = document.getElementById('scan-canvas');
+  if (signatureOverlay) signatureOverlay.remove();
+  signatureOverlay = document.createElement('img');
+  signatureOverlay.src = currentSignature;
+  signatureOverlay.className = 'signature-overlay';
+  container.appendChild(signatureOverlay);
+
+  signatureOverlay.onload = () => {
+    if (!signatureInfo) {
+      const scale = canvas.offsetWidth / 340;
+      const w = 150 * scale;
+      const h = 48 * scale;
+      signatureInfo = {
+        x: (canvas.offsetWidth - w - 20) / canvas.offsetWidth,
+        y: (canvas.offsetHeight - h - 12) / canvas.offsetHeight,
+        scale: w / canvas.offsetWidth
+      };
+    }
+    updateSignatureOverlay();
   };
-  sigImg.src = currentSignature;
+
+  initSignatureHandlers();
+}
+
+function updateSignatureOverlay() {
+  if (!signatureOverlay || !signatureInfo || !currentImage) return;
+  const canvas = document.getElementById('scan-canvas');
+  const w = signatureInfo.scale * canvas.offsetWidth;
+  const h = w * (signatureOverlay.naturalHeight / signatureOverlay.naturalWidth);
+  signatureOverlay.style.width = w + 'px';
+  signatureOverlay.style.left = (canvas.offsetLeft + signatureInfo.x * canvas.offsetWidth) + 'px';
+  signatureOverlay.style.top = (canvas.offsetTop + signatureInfo.y * canvas.offsetHeight) + 'px';
+}
+
+function overlaySignature(ctx = $('#scan-canvas').getContext('2d')) {
+  if (!signatureOverlay || !signatureInfo) return;
+  const canvas = document.getElementById('scan-canvas');
+  const w = signatureInfo.scale * canvas.width;
+  const h = w * (signatureOverlay.naturalHeight / signatureOverlay.naturalWidth);
+  ctx.save();
+  ctx.globalAlpha = 0.93;
+  ctx.drawImage(signatureOverlay, signatureInfo.x * canvas.width, signatureInfo.y * canvas.height, w, h);
+  ctx.restore();
+}
+
+function initSignatureHandlers() {
+  if (!signatureOverlay) return;
+  const canvas = document.getElementById('scan-canvas');
+  const activePointers = new Map();
+  let startScale = 1, startDist = 0;
+
+  function pointerDown(e) {
+    signatureOverlay.setPointerCapture(e.pointerId);
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.size === 1) {
+      signatureOverlay.classList.add('dragging');
+    } else if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      startDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      startScale = signatureInfo.scale;
+    }
+    e.preventDefault();
+  }
+
+  function pointerMove(e) {
+    if (!activePointers.has(e.pointerId)) return;
+    const prev = activePointers.get(e.pointerId);
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.size === 1) {
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      signatureInfo.x += dx / canvas.offsetWidth;
+      signatureInfo.y += dy / canvas.offsetHeight;
+      updateSignatureOverlay();
+    } else if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      signatureInfo.scale = Math.max(0.1, Math.min(2.5, startScale * dist / startDist));
+      updateSignatureOverlay();
+    }
+    e.preventDefault();
+  }
+
+  function pointerUp(e) {
+    signatureOverlay.releasePointerCapture(e.pointerId);
+    activePointers.delete(e.pointerId);
+    if (activePointers.size === 0) {
+      signatureOverlay.classList.remove('dragging');
+    } else if (activePointers.size === 1) {
+      const only = Array.from(activePointers.values())[0];
+      startScale = signatureInfo.scale;
+      startDist = 0;
+      activePointers.set(Array.from(activePointers.keys())[0], only);
+    }
+    e.preventDefault();
+  }
+
+  signatureOverlay.addEventListener('pointerdown', pointerDown);
+  signatureOverlay.addEventListener('pointermove', pointerMove);
+  signatureOverlay.addEventListener('pointerup', pointerUp);
+  signatureOverlay.addEventListener('pointercancel', pointerUp);
 }
 
 // === Masque / Floutage (Premium) ===
@@ -336,7 +433,10 @@ function activateMaskTool() {
     overlay.style.pointerEvents = 'none';
     overlay.style.cursor = '';
     overlay.innerHTML = '';
-    if (currentImage) drawScanCanvas(currentImage);
+    if (currentImage) {
+      drawScanCanvas(currentImage);
+      updateSignatureOverlay();
+    }
     overlay.removeEventListener('mousedown', onDown);
     overlay.removeEventListener('mousemove', onMove);
     overlay.removeEventListener('mouseup', onUp);
@@ -669,7 +769,7 @@ $$('.premium').forEach(el => {
 window.addEventListener('resize', () => {
   if (currentImage && $('#work-area') && !$('#work-area').classList.contains('hidden')) {
     drawScanCanvas(currentImage);
-    overlaySignature();
+    updateSignatureOverlay();
   }
 });
 
