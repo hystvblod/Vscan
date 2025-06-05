@@ -591,7 +591,8 @@ function exportPDF() {
       ctx.fillStyle = "#f9b17a";
       ctx.font = `bold ${Math.floor(canvas.width/13)}px Arial`;
       ctx.textAlign = 'left';
-      ctx.fillText(`VScanPro • ${new Date().toLocaleString()}`, 14, canvas.height-14);
+      const stamp = window.SEAL_TEXT || '';
+      if (stamp) ctx.fillText(stamp.replace('%DATE%', new Date().toLocaleString()), 14, canvas.height-14);
       ctx.restore();
     }
 
@@ -610,7 +611,7 @@ function exportPDF() {
     }
 
     // Export
-    const fname = `VScanPro_${new Date().toISOString().slice(0,10)}.pdf`;
+    const fname = `Scan_${new Date().toISOString().slice(0,10)}.pdf`;
     pdf.save(fname);
 
     // Historique
