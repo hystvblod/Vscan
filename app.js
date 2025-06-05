@@ -508,42 +508,6 @@ function markAsImportant(index) {
 // Tu peux intégrer tesseract.js ici si tu veux l’OCR complet
 // Pour l’instant, c’est un placeholder selon la taille de l’image (déjà géré plus haut)
 
-// === Thème sombre/clair switch ===
-$('#theme-toggle').addEventListener('click', () => {
-  darkMode = !darkMode;
-  document.body.classList.toggle('dark', darkMode);
-  localStorage.setItem('vscan_dark', darkMode ? '1' : '0');
-});
-
-// === Passage Premium (mock abonnement) ===
-$('#premium-btn').addEventListener('click', () => {
-  isPremium = !isPremium;
-  localStorage.setItem('vscan_premium', isPremium ? '1' : '0');
-  updatePremiumUI();
-  alert(isPremium ? "Premium activé !" : "Premium désactivé !");
-});
-
-// Mise à jour de l’état premium sur les boutons/options
-function updatePremiumUI() {
-  $$('.premium').forEach(el => {
-    el.classList.toggle('locked', !isPremium);
-    el.disabled = !isPremium;
-    el.title = isPremium ? "" : "Premium requis";
-  });
-  $('#promo-banner').style.display = isPremium ? 'none' : 'flex';
-}
-
-// --- INIT --- (relancé pour s’assurer si module rechargé)
-if (typeof window.VSCAN_INIT === "undefined") {
-  window.VSCAN_INIT = true;
-  document.addEventListener('DOMContentLoaded', () => {
-    setLang(currentLang);
-    updatePremiumUI();
-    if (darkMode) document.body.classList.add('dark');
-    // Rechargement auto de l’historique si needed
-    loadHistory();
-  });
-}
 // === Helpers & accessibilité ===
 
 // Petite aide pour focus clavier, gestion modale accessible
