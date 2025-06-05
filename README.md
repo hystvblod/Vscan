@@ -11,7 +11,7 @@ VScanPro is a minimal web scanner and PDF tool. It runs entirely in the browser 
    ```
    then open `http://localhost:8000/index.html`.
 
-The app offers basic scanning features, document history and light/dark mode. You can switch languages using the dropdown in the header.
+The app offers basic scanning features, document history and light/dark mode. You can switch languages using the dropdown in the header. After adding a signature, drag it to move and pinch on touch screens to resize it.
 
 ## Premium extras
 
