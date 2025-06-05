@@ -191,6 +191,20 @@ body.dark #scan-canvas {
   background: #191a22;
 }
 
+#mask-overlay {
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  border-radius: 0.8rem;
+  pointer-events: none;
+}
+
+.mask-rect {
+  position: absolute;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(3px);
+  border-radius: 0.4rem;
+}
+
 .actions-toolbar {
   display: flex;
   flex-wrap: wrap;

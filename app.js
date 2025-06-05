@@ -324,6 +324,122 @@ function overlaySignature() {
   sigImg.src = currentSignature;
 }
 
+// === Masque / Floutage (Premium) ===
+function activateMaskTool() {
+  if (!isPremium) return;
+  const overlay = document.getElementById('mask-overlay');
+  const canvas = document.getElementById('scan-canvas');
+  // Toggle mode
+  const active = overlay.dataset.active === '1';
+  if (active) {
+    overlay.dataset.active = '';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.cursor = '';
+    overlay.innerHTML = '';
+    if (currentImage) drawScanCanvas(currentImage);
+    overlay.removeEventListener('mousedown', onDown);
+    overlay.removeEventListener('mousemove', onMove);
+    overlay.removeEventListener('mouseup', onUp);
+    overlay.removeEventListener('mouseleave', onUp);
+    overlay.removeEventListener('touchstart', onDown);
+    overlay.removeEventListener('touchmove', onMove);
+    overlay.removeEventListener('touchend', onUp);
+    overlay.removeEventListener('touchcancel', onUp);
+    return;
+  }
+
+  // Prepare overlay
+  overlay.dataset.active = '1';
+  overlay.style.pointerEvents = 'auto';
+  overlay.style.cursor = 'crosshair';
+  overlay.style.width = canvas.offsetWidth + 'px';
+  overlay.style.height = canvas.offsetHeight + 'px';
+  overlay.innerHTML = '';
+
+  // Existing mask
+  currentMask.forEach(m => {
+    const d = document.createElement('div');
+    d.className = 'mask-rect';
+    d.style.left = (m.x * overlay.offsetWidth) + 'px';
+    d.style.top = (m.y * overlay.offsetHeight) + 'px';
+    d.style.width = (m.w * overlay.offsetWidth) + 'px';
+    d.style.height = (m.h * overlay.offsetHeight) + 'px';
+    overlay.appendChild(d);
+  });
+
+  let startX = 0, startY = 0, drawing = false, rectDiv = null;
+
+  function pos(e) {
+    const t = e.touches ? e.touches[0] : e;
+    const r = overlay.getBoundingClientRect();
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+
+  function onDown(e) {
+    drawing = true;
+    const p = pos(e);
+    startX = p.x; startY = p.y;
+    rectDiv = document.createElement('div');
+    rectDiv.className = 'mask-rect';
+    rectDiv.style.left = startX + 'px';
+    rectDiv.style.top = startY + 'px';
+    overlay.appendChild(rectDiv);
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!drawing) return;
+    const p = pos(e);
+    const l = Math.min(startX, p.x);
+    const t = Math.min(startY, p.y);
+    const w = Math.abs(p.x - startX);
+    const h = Math.abs(p.y - startY);
+    rectDiv.style.left = l + 'px';
+    rectDiv.style.top = t + 'px';
+    rectDiv.style.width = w + 'px';
+    rectDiv.style.height = h + 'px';
+    e.preventDefault();
+  }
+
+  function onUp(e) {
+    if (!drawing) return;
+    drawing = false;
+    const r = rectDiv.getBoundingClientRect();
+    const base = overlay.getBoundingClientRect();
+    if (r.width < 3 || r.height < 3) {
+      overlay.removeChild(rectDiv);
+    } else {
+      currentMask.push({
+        x: (r.left - base.left) / base.width,
+        y: (r.top - base.top) / base.height,
+        w: r.width / base.width,
+        h: r.height / base.height
+      });
+    }
+    rectDiv = null;
+    e.preventDefault();
+  }
+
+  overlay.addEventListener('mousedown', onDown);
+  overlay.addEventListener('mousemove', onMove);
+  overlay.addEventListener('mouseup', onUp);
+  overlay.addEventListener('mouseleave', onUp);
+  overlay.addEventListener('touchstart', onDown, { passive: false });
+  overlay.addEventListener('touchmove', onMove, { passive: false });
+  overlay.addEventListener('touchend', onUp);
+  overlay.addEventListener('touchcancel', onUp);
+}
+
+function drawMask(ctx, w, h) {
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.globalAlpha = 0.45;
+  currentMask.forEach(m => {
+    ctx.fillRect(m.x * w, m.y * h, m.w * w, m.h * h);
+  });
+  ctx.restore();
+}
+
 // === Filigrane (Premium) ===
 function overlayWatermark(ctx, w, h) {
   if (!isPremium) return;
