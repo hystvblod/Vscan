@@ -112,7 +112,14 @@ function setLang(lang) {
     const key = el.getAttribute('data-t');
     if (LANGS[lang] && LANGS[lang][key]) el.textContent = LANGS[lang][key];
   });
+  document.querySelectorAll('[data-title]').forEach(el => {
+    const key = el.getAttribute('data-title');
+    if (LANGS[lang] && LANGS[lang][key]) el.title = LANGS[lang][key];
+  });
   currentLang = lang;
+  if (signatureOverlay) {
+    signatureOverlay.title = LANGS[lang].signature_hint;
+  }
 }
 
 function updatePremiumUI() {
@@ -323,6 +330,7 @@ function createSignatureOverlay() {
   signatureOverlay = document.createElement('img');
   signatureOverlay.src = currentSignature;
   signatureOverlay.className = 'signature-overlay';
+  signatureOverlay.title = LANGS[currentLang].signature_hint;
   container.appendChild(signatureOverlay);
 
   signatureOverlay.onload = () => {
@@ -366,15 +374,24 @@ function overlaySignature(ctx = $('#scan-canvas').getContext('2d')) {
 function initSignatureHandlers() {
   if (!signatureOverlay) return;
   const canvas = document.getElementById('scan-canvas');
+  const supportsPointer = 'onpointerdown' in window;
   const activePointers = new Map();
-  let startScale = 1, startDist = 0;
+  let startScale = 1, startDist = 0, lastX = 0, lastY = 0;
 
-  function pointerDown(e) {
-    signatureOverlay.setPointerCapture(e.pointerId);
-    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  function start(e) {
+    if (supportsPointer) {
+      signatureOverlay.setPointerCapture(e.pointerId);
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    } else {
+      Array.from(e.touches).forEach(t => {
+        activePointers.set(t.identifier, { x: t.clientX, y: t.clientY });
+      });
+    }
     if (activePointers.size === 1) {
       signatureOverlay.classList.add('dragging');
-    } else if (activePointers.size === 2) {
+      const p = Array.from(activePointers.values())[0];
+      lastX = p.x; lastY = p.y;
+    } else if (activePointers.size >= 2) {
       const pts = Array.from(activePointers.values());
       startDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       startScale = signatureInfo.scale;
@@ -382,17 +399,28 @@ function initSignatureHandlers() {
     e.preventDefault();
   }
 
-  function pointerMove(e) {
-    if (!activePointers.has(e.pointerId)) return;
-    const prev = activePointers.get(e.pointerId);
-    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  function move(e) {
+    if (supportsPointer) {
+      if (!activePointers.has(e.pointerId)) return;
+      const prev = activePointers.get(e.pointerId);
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    } else {
+      Array.from(e.touches).forEach(t => {
+        if (activePointers.has(t.identifier)) {
+          activePointers.set(t.identifier, { x: t.clientX, y: t.clientY });
+        }
+      });
+    }
+
     if (activePointers.size === 1) {
-      const dx = e.clientX - prev.x;
-      const dy = e.clientY - prev.y;
+      const p = Array.from(activePointers.values())[0];
+      const dx = p.x - lastX;
+      const dy = p.y - lastY;
       signatureInfo.x += dx / canvas.offsetWidth;
       signatureInfo.y += dy / canvas.offsetHeight;
+      lastX = p.x; lastY = p.y;
       updateSignatureOverlay();
-    } else if (activePointers.size === 2) {
+    } else if (activePointers.size >= 2) {
       const pts = Array.from(activePointers.values());
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       signatureInfo.scale = Math.max(0.1, Math.min(2.5, startScale * dist / startDist));
@@ -401,24 +429,35 @@ function initSignatureHandlers() {
     e.preventDefault();
   }
 
-  function pointerUp(e) {
-    signatureOverlay.releasePointerCapture(e.pointerId);
-    activePointers.delete(e.pointerId);
+  function end(e) {
+    if (supportsPointer) {
+      signatureOverlay.releasePointerCapture(e.pointerId);
+      activePointers.delete(e.pointerId);
+    } else {
+      Array.from(e.changedTouches).forEach(t => activePointers.delete(t.identifier));
+    }
     if (activePointers.size === 0) {
       signatureOverlay.classList.remove('dragging');
     } else if (activePointers.size === 1) {
       const only = Array.from(activePointers.values())[0];
       startScale = signatureInfo.scale;
       startDist = 0;
-      activePointers.set(Array.from(activePointers.keys())[0], only);
+      lastX = only.x; lastY = only.y;
     }
     e.preventDefault();
   }
 
-  signatureOverlay.addEventListener('pointerdown', pointerDown);
-  signatureOverlay.addEventListener('pointermove', pointerMove);
-  signatureOverlay.addEventListener('pointerup', pointerUp);
-  signatureOverlay.addEventListener('pointercancel', pointerUp);
+  if (supportsPointer) {
+    signatureOverlay.addEventListener('pointerdown', start);
+    signatureOverlay.addEventListener('pointermove', move);
+    signatureOverlay.addEventListener('pointerup', end);
+    signatureOverlay.addEventListener('pointercancel', end);
+  } else {
+    signatureOverlay.addEventListener('touchstart', start, { passive: false });
+    signatureOverlay.addEventListener('touchmove', move, { passive: false });
+    signatureOverlay.addEventListener('touchend', end);
+    signatureOverlay.addEventListener('touchcancel', end);
+  }
 }
 
 // === Masque / Floutage (Premium) ===
