@@ -650,7 +650,26 @@ function exportPDF() {
 
     // Export
     const fname = `VScanPro_${new Date().toISOString().slice(0,10)}.pdf`;
-    pdf.save(fname);
+    const blob = pdf.output('blob');
+
+    const shareFile = () => {
+      const file = new File([blob], fname, { type: 'application/pdf' });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: fname }).catch(err => console.error('Share failed', err));
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fname;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    };
+
+    shareFile();
 
     // Historique
     saveToHistory(canvas.toDataURL("image/jpeg",0.92), fname);
