@@ -85,8 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (nv && nv.length < 70) $('#promo-text').innerText = nv;
   });
   $('#promo-link').addEventListener('dblclick', () => {
-    const nv = prompt("Modifier le lien de la promo :", $('#promo-link').href);
-    if (nv && nv.startsWith('http')) $('#promo-link').href = nv;
+    const link = $('#promo-link');
+    const nv = prompt("Modifier le lien de la promo :", link.href);
+    if (nv && nv.startsWith('http')) {
+      link.href = nv;
+      link.rel = 'noopener noreferrer';
+    }
   });
 
   // Init promo image change
